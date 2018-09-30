@@ -12,4 +12,6 @@ output:
 ```{r setup, echo = FALSE, warning = FALSE, message = FALSE}
 #Load necessary packages
 library(tidyverse)
+library(p8105.datasets)
 ```
+
