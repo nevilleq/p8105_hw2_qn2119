@@ -1,0 +1,15 @@
+---
+title: "P8105 Homework 2"
+author: "Quinton Neville"
+date: "Due October 4th, 2018"
+header-includes: 
+  \usepackage{graphicx}
+  \usepackage{float}
+output:
+   github_document 
+---
+
+```{r setup, echo = FALSE, warning = FALSE, message = FALSE}
+#Load necessary packages
+library(tidyverse)
+```
