@@ -56,15 +56,33 @@ distinct.route.df <- nyc.transit.df %>%
   mutate(route = apply(select(., route1:route11), 1, collapse.route)) %>%
   select(line, station_name, route, everything(), -c(route1:route11))
 
-a <- distinct.route.df %>% distinct(., line, station_name) #465
+a <- distinct.route.df %>% distinct(., line, station_name) #465 Correct, if #109 is invalid. Assuming #1628 miscoded
 
 b <- distinct.route.df %>% distinct(., line, station_name, route) #467
+  
+#OBS 109 in original data has an extra train serviced at one of the entrances (6thAV & 47-50th Sts Rockefeller Center, extra 7 train)
+#OBS 1628 in original data has a miss-coded e instead of E at one entrance (Queens & Forest Hills, route1 = e)
 
 distinct.stations <-  distinct.route.df %>% distinct(., line, station_name) %>% nrow()
 
 #Count distinct stations ADA compiance
-distinct.stations.df <- nyc.transit.df %>%
-  distinct(., line, station_name, ada)
+distinct.stations.df <- distinct.route.df %>%
+  distinct(., line, station_name, route, ada)
 
+distinct.ada.comp <- sum(distinct.stations.df$ada, na.rm = TRUE)
+distinct.ada.prop <- mean(distinct.stations.df$ada, na.rm = TRUE)
+
+#Proportion of entries/exits with no vending that allow entrance
+no.vend.entry <- distinct.route.df %>%
+  filter(vending == "NO") %>%
+  select(entry) %>%
+  apply(., 2, mean)
+
+#Pulling those which service the A train and counting how many are ADA compliant
+distinct.stations.df %>%
+  mutate(service_a = grepl("A", route)) %>%
+  filter(service_a == TRUE) %>%
+  select(ada) %>%
+  apply(., 2, sum)
 ```
 
