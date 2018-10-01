@@ -12,6 +12,59 @@ output:
 ```{r setup, echo = FALSE, warning = FALSE, message = FALSE}
 #Load necessary packages
 library(tidyverse)
+library(readxl)
+library(readr)
 library(p8105.datasets)
+```
+
+This problem focuses on NYC Transit data; in particular, this CSV file contains information related to each entrance and exit for each subway station in NYC.
+
+Read and clean the data; retain line, station, name, station latitude / longitude, routes served, entry, vending, entrance type, and ADA compliance. Convert the entry variable from character (YES vs NO) to a logical variable (the ifelse or recode function may be useful).
+
+Write a short paragraph about this dataset – explain briefly what variables the dataset contains, describe your data cleaning steps so far, and give the dimension (rows x columns) of the resulting dataset. Are these data tidy?  
+
+Answer the following questions using these data:  
+
+How many distinct stations are there? Note that stations are identified both by name and by line (e.g. 125th St A/B/C/D; 125st 1; 125st 4/5); the distinct function may be useful here.  
+
+How many stations are ADA compliant?
+What proportion of station entrances / exits without vending allow entrance?
+Reformat data so that route number and route name are distinct variables. How many distinct stations serve the A train? Of the stations that serve the A train, how many are ADA compliant?
+
+#Problem 1
+```{r}
+nyc.transit.df <- read_csv(file = "./data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv",
+                           col_types = cols(
+                               Route8 = col_character(),
+                               Route9 = col_character(),
+                               Route10 = col_character(),
+                               Route11 = col_character()
+                           )) %>%
+  janitor::clean_names() %>%
+  select(line:route11, entry, vending, entrance_type, ada) %>%
+  mutate(entry = ifelse(entry == "YES", TRUE, FALSE))
+
+#Dimensions
+dim.nyc.transit <- dim(nyc.transit.df)   #Vector of [1] Rows, [2] Columns
+
+#Count Distinct Stations by Line and Name
+collapse.route <- function(x){
+  paste0(na.omit(x), collapse = "/")
+}
+
+distinct.route.df <- nyc.transit.df %>%
+  mutate(route = apply(select(., route1:route11), 1, collapse.route)) %>%
+  select(line, station_name, route, everything(), -c(route1:route11))
+
+a <- distinct.route.df %>% distinct(., line, station_name) #465
+
+b <- distinct.route.df %>% distinct(., line, station_name, route) #467
+
+distinct.stations <-  distinct.route.df %>% distinct(., line, station_name) %>% nrow()
+
+#Count distinct stations ADA compiance
+distinct.stations.df <- nyc.transit.df %>%
+  distinct(., line, station_name, ada)
+
 ```
 
