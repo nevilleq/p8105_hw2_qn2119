@@ -84,5 +84,101 @@ distinct.stations.df %>%
   filter(service_a == TRUE) %>%
   select(ada) %>%
   apply(., 2, sum)
+
+#Note add cleaning steps from the original data frame in each problem, i.e. pipe the whole thing frome original
+```
+
+Problem2
+This problem uses the Mr. Trash Wheel dataset, available as an Excel file on the course website. Please use the  HealthyHarborWaterWheelTotals2017-9-26.xlsx version.
+
+Read and clean the Mr. Trash Wheel sheet:
+
+specify the sheet in the Excel file and to omit columns containing notes (using the range argument and cell_cols() function)
+use reasonable variable names
+omit rows that do not include dumpster-specific data
+rounds the number of sports balls to the nearest integer and converts the result to an integer variable (using as.integer)
+Read and clean precipitation data for 2016 and 2017. For each, omit rows without precipitation data and add a variable year. Next, combine datasets and convert month to a character variable (the variable month.name is built into R and should be useful).
+
+Write a paragraph about these data; you are encouraged to use inline R. Be sure to note the number of observations in both resulting datasets, and give examples of key variables. For available data, what was the total precipitation in 2017? What was the median number of sports balls in a dumpster in 2016?
+
+#Problem 2
+```{r}
+###Mr. Trashwheel###
+#Read and Clean Mr. Trash Wheel Data
+trash.wheel.df <- read_xlsx("./data/HealthyHarborWaterWheelTotals2017-9-26.xlsx",
+                            sheet = "Mr. Trash Wheel", range = cell_cols("A:N")) %>%  #Select only variable columns
+                  janitor::clean_names() %>%                                          #Standardize variable names
+                  mutate(total = grepl("Total", month),                               #Create logical for "Total", for later filtering
+                         sports_balls = as.integer(sports_balls),                     #Round sports_balls to nearet integer
+                         year = ifelse(is.na(year), "2017", year)) %>%                #Impute missing year to match date variable
+                  filter(total == FALSE) %>%                                          #Omit all rows with non-dumpster spec. data
+                  select(-total) %>%                                                  #Remove logical total variable
+                  na.omit()                                                           #Omit the remaining NA rows
+
+#Key Stats
+
+#Dimension
+dim.trash.wheel <- dim(trash.wheel.df) #c(Rows, Cols)
+
+#Create Tibble of Summary stats to access easily inline
+total.trash.df <- trash.wheel.df %>% 
+              select(weight_tons:homes_powered) %>%           #Taking all the cont. variables, calculating sum/totals, store as tibble
+              apply(., 2, sum) %>% 
+              t() %>%
+              as.tibble()
+summary.trash.df <- trash.wheel.df %>% 
+              select(weight_tons:homes_powered) %>%           #Taking all the cont. variables, calc. summary stats, store as tibble
+              apply(., 2, summary) %>%                        #Row bind with total
+              as.tibble() %>%                                 #Add 'statistic' variable to access easiliy by filter inline
+              bind_rows(., total.trash.df) %>%
+              mutate(statistic =  c("Min", "1Q", "Median", "Mean", "3Q", "Max", "Sum")) %>%
+              select(statistic, everything())
+
+#Calculate Median Sports Balls in 2016
+median.sports.balls <- trash.wheel.df %>%
+                       filter(year == "2016") %>%
+                       select(sports_balls) %>%
+                       apply(., 2, median)
+
+###2016-2017 Precipitation###
+#Read 2016-2017 Precipitation Data
+precip.16.df <- read_xlsx("./data/HealthyHarborWaterWheelTotals2017-9-26.xlsx",
+                            sheet = "2016 Precipitation", range = "A2:B14")
+
+precip.17.df <- read_xlsx("./data/HealthyHarborWaterWheelTotals2017-9-26.xlsx",
+                            sheet = "2017 Precipitation", range = "A2:B14")
+
+#Clean 2016-2017 Precipitation Data
+precip.years <- c("2016", "2017")  #Years of Precipitation observation
+
+precip.16.17.df <- bind_rows(precip.16.df, precip.17.df) %>%                             #Row bind 16-17 data
+                   janitor::clean_names() %>%                                            #Clean names
+                   mutate(month = rep(month.name, times = length(precip.years)),         #Change month variable to char
+                          year = rep(precip.years, each = length(month.name))) %>%       #Create variable for year of correct length
+                   filter(!is.na(total))                                                 #Omit obs. w/no total reported
+
+#Key Stats
+dim.precip.16.17 <- dim(precip.16.17.df)
+
+#Total for both years
+total.precip.df <- precip.16.17.df %>% 
+                   select(total) %>%              #Taking continuous variable Total
+                   apply(., 2, sum) %>%           #Counting the total over both years
+                   t() %>% as.tibble()
+
+#Summary monthly rainfall for both years & total in one tibble
+summary.precip.df <- precip.16.17.df %>%
+                 select(total) %>%                #Taking cont. variable Total
+                 apply(., 2, summary) %>%         #Summarazing it over both years
+                 as.tibble() %>%                  #Binding with total for easy inline access
+                 bind_rows(., total.precip.df) %>%
+                 mutate(statistic =  c("Min", "1Q", "Median", "Mean", "3Q", "Max", "Sum")) %>%
+                 select(statistic, everything())
+
+#Total Precipitation in 2017
+total.precip.17 <- precip.16.17.df %>%
+                   filter(year == 2017) %>%
+                   select(total) %>%
+                   sum()
 ```
 
