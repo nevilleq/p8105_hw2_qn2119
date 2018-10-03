@@ -46,57 +46,69 @@ Reformat data so that route number and route name are distinct variables. How ma
 
 #Problem 1
 ```{r}
+#Read in & Clean Full Entry/Exit Data
 nyc.transit.df <- read_csv(file = "./data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv",
-                           col_types = cols(
-                               Route8 = col_character(),
-                               Route9 = col_character(),
-                               Route10 = col_character(),
-                               Route11 = col_character()
-                           )) %>%
-  janitor::clean_names() %>%
-  select(line:route11, entry, vending, entrance_type, ada) %>%
-  mutate(entry = ifelse(entry == "YES", TRUE, FALSE))
+                     col_types = cols(
+                          Route8 = col_character(),
+                          Route9 = col_character(),                               #Keeping route variables consistent as chars
+                          Route10 = col_character(),
+                          Route11 = col_character()
+                       )) %>%
+                     janitor::clean_names() %>%                                     #Standardizing var names
+                     select(line:route11, entry, vending, entrance_type, ada) %>%   #Selecting only necessary vars
+                     mutate(entry = ifelse(entry == "YES", TRUE, FALSE),            #Casting entry as logical
+                          route1 = route1 %>% tolower() %>% toupper(),            #Fixing incorrect lowercase e for E, route1 obs 109
+                          route5 = replace(route5, 109, NA))                      #Fixing incorrect 7 service, 6thAv-Rockefellr obs 1628
+
+#NOTE
+#OBS 109 in original data has an extra train serviced at one of the entrances 
+#(6thAV & 47-50th Sts Rockefeller Center, extra 7 train)
+#OBS 1628 in original data has a miss-coded e instead of E at one entrance 
+#(Queens & Forest Hills, route1 = e)
 
 #Dimensions
 dim.nyc.transit <- dim(nyc.transit.df)   #Vector of [1] Rows, [2] Columns
 
 #Count Distinct Stations by Line and Name
+
+#User Function to collapse route1:11 but omit NA's, returns vector of strings
 collapse.route <- function(x){
   paste0(na.omit(x), collapse = "/")
 }
 
+#Create Distinct Station tibbl (keeping original for entry/exit question)
 distinct.route.df <- nyc.transit.df %>%
-  mutate(route = apply(select(., route1:route11), 1, collapse.route)) %>%
-  select(line, station_name, route, everything(), -c(route1:route11))
+                     mutate(route = apply(select(., route1:route11), 1, collapse.route)) %>%  #Apply collapse, create new string var
+                     select(line, station_name, route, everything(), -c(route1:route11))      #Tidy up order and remove old routes
 
-a <- distinct.route.df %>% distinct(., line, station_name) #465 Correct, if #109 is invalid. Assuming #1628 miscoded
-
-b <- distinct.route.df %>% distinct(., line, station_name, route) #467
-  
-#OBS 109 in original data has an extra train serviced at one of the entrances (6thAV & 47-50th Sts Rockefeller Center, extra 7 train)
-#OBS 1628 in original data has a miss-coded e instead of E at one entrance (Queens & Forest Hills, route1 = e)
-
-distinct.stations <-  distinct.route.df %>% distinct(., line, station_name) %>% nrow()
+#Count Distinct Stations by Line, Name, and Route
+distinct.stations <- distinct.route.df %>% distinct(., line, station_name, route) %>% nrow()
 
 #Count distinct stations ADA compiance
 distinct.stations.df <- distinct.route.df %>%
-  distinct(., line, station_name, route, ada)
+                     distinct(., line, station_name, route, ada)
 
-distinct.ada.comp <- sum(distinct.stations.df$ada, na.rm = TRUE)
-distinct.ada.prop <- mean(distinct.stations.df$ada, na.rm = TRUE)
+distinct.ada.comp <- distinct.route.df %>%
+                     distinct(., line, station_name, route, ada) %>%
+                     select(ada) %>% 
+                     apply(., 2, sum, na.rm = TRUE)
+distinct.ada.prop <- distinct.route.df %>%
+                     distinct(., line, station_name, route, ada) %>%
+                     select(ada) %>% 
+                     apply(., 2, mean, na.rm = TRUE)
 
 #Proportion of entries/exits with no vending that allow entrance
-no.vend.entry <- distinct.route.df %>%
-  filter(vending == "NO") %>%
-  select(entry) %>%
-  apply(., 2, mean)
+no.vend.entry <- nyc.transit.df %>%
+                     filter(vending == "NO") %>%
+                     select(entry) %>%
+                     apply(., 2, mean)
 
 #Pulling those which service the A train and counting how many are ADA compliant
-distinct.stations.df %>%
-  mutate(service_a = grepl("A", route)) %>%
-  filter(service_a == TRUE) %>%
-  select(ada) %>%
-  apply(., 2, sum)
+atrain.ada.comp <- distinct.stations.df %>%
+                     mutate(service_a = grepl("A", route)) %>%
+                     filter(service_a == TRUE) %>%
+                     select(ada) %>%
+                     apply(., 2, sum)
 
 #Note add cleaning steps from the original data frame in each problem, i.e. pipe the whole thing frome original
 ```
