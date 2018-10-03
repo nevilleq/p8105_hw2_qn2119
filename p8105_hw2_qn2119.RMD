@@ -15,6 +15,19 @@ library(tidyverse)
 library(readxl)
 library(readr)
 library(p8105.datasets)
+
+#Controlling figure output in markdown
+knitr::opts_chunk$set(
+#  fig.height =   
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+#  out.height = 
+)
+
+#Set Theme for ggplot2
+theme_set(theme_bw() + theme(legend.position = "bottom"))
+
 ```
 
 This problem focuses on NYC Transit data; in particular, this CSV file contains information related to each entrance and exit for each subway station in NYC.
@@ -181,4 +194,92 @@ total.precip.17 <- precip.16.17.df %>%
                    select(total) %>%
                    sum()
 ```
+
+
+
+
+#Problem 3
+
+This problem uses the BRFSS data. DO NOT include this dataset in your local data directory; instead, load the data from the  p8105.datasets package.
+
+For this question:
+
+format the data to use appropriate variable names;
+focus on the “Overall Health” topic
+exclude variables for class, topic, question, sample size, and everything from lower confidence limit to GeoLocation
+structure data so that values for Response (“Excellent” to “Poor”) are column names / variables which indicate the proportion of subjects with each response (which are values of Data_value in the original dataset)
+create a new variable showing the proportion of responses that were “Excellent” or “Very Good”
+Using this dataset, do or answer the following:
+
+How many unique locations are included in the dataset? Is every state represented? What state is observed the most?
+In 2002, what is the median of the “Excellent” response value?
+Make a histogram of “Excellent” response values in the year 2002.
+Make a scatterplot showing the proportion of “Excellent” response values in New York County and Queens County (both in NY State) in each year from 2002 to 2010.
+
+```{r}
+#Call data from p8105 library
+data("brfss_smart2010")
+
+#Clean and Manipulate BRFSS data
+brfss.df <- brfss_smart2010 %>%
+            janitor::clean_names() %>%
+            filter(topic == "Overall Health") %>%
+            select(-c(class, topic, question, sample_size, confidence_limit_low:geo_location)) %>%
+            spread(key = response, value = data_value) %>% 
+            janitor::clean_names() %>%
+            mutate(locationdesc = substring(locationdesc, 6)) %>%
+            rename(state = locationabbr, county = locationdesc) %>%
+            select(year:county, excellent, very_good, good, fair, poor) %>%
+            mutate(excellent_or_very_good = excellent + very_good)
+
+#Distinct Locations/States
+distinct.locations <-  brfss.df %>% distinct(., state, county) %>% nrow() #404
+
+distinct.states <- brfss.df %>% distinct(., state) %>% nrow() 
+
+#Which State Observed the Most
+max.state.index <- brfss.df %>% count(state) %>% select(n) %>% apply(., 2, which.max)
+state.max.obs <- brfss.df %>% count(state) %>% select(state) %>% slice(., max.state.index) %>% as.character()
+
+#2002 Median 'Excellent` response
+med.excel.2002 <- brfss.df %>% 
+                  filter(year == 2002) %>%
+                  select(excellent) %>%
+                  apply(., 2, median, na.rm = T)
+
+#Histogram of Excellent Responses in 2002
+hist.excel.02 <- brfss.df %>%
+                 filter(year == 2002) %>%
+                 ggplot() +
+                 geom_histogram(aes(x = excellent),
+                                color = "black", fill = "lightblue") +
+                 labs(
+                   x = "Percentage Excellent Response (%)",
+                   y = "Count",
+                   title = "Histogram of % Excellent Response, 2002"
+                 )
+
+hist.excel.02
+
+#Scatter of Prop. Excellent in NY County and Queens County, from 2002 to 2010
+scatter.excel.02.10 <- brfss.df %>%
+                       filter(county == "New York County" |
+                              county == "Queens County") %>%
+                       ggplot(aes(x = year, y = excellent, color = county)) +
+                       geom_point(alpha = 0.9, size = 2) +
+                       labs(
+                         x = "Year",
+                         y = "Proportion Excellent Responses (%)",
+                         title = "Scatter Plot of % Excellent Responses"
+                       ) +
+                       scale_color_manual(
+                         name = "County",
+                         values = c("Lightblue", "Purple"))
+scatter.excel.02.10
+
+
+                      
+
+```
+
 
