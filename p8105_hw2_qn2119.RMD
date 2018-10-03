@@ -46,6 +46,11 @@ Reformat data so that route number and route name are distinct variables. How ma
 
 #Problem 1
 ```{r}
+#User Function to collapse route1:11 but omit NA's, returns vector of strings, for tidy data
+collapse.route <- function(x){
+  paste0(na.omit(x), collapse = "/")
+}
+
 #Read in & Clean Full Entry/Exit Data
 nyc.transit.df <- read_csv(file = "./data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv",
                      col_types = cols(
@@ -57,10 +62,11 @@ nyc.transit.df <- read_csv(file = "./data/NYC_Transit_Subway_Entrance_And_Exit_D
                      janitor::clean_names() %>%                                     #Standardizing var names
                      select(line:route11, entry, vending, entrance_type, ada) %>%   #Selecting only necessary vars
                      mutate(entry = ifelse(entry == "YES", TRUE, FALSE),            #Casting entry as logical
-                          route1 = route1 %>% tolower() %>% toupper(),            #Fixing incorrect lowercase e for E, route1 obs 109
-                          route5 = replace(route5, 109, NA))                      #Fixing incorrect 7 service, 6thAv-Rockefellr obs 1628
-
-#NOTE
+                          route1 = route1 %>% toupper(),                          #Fixing incorrect lowercase e for E, route1 obs 1628
+                          route5 = replace(route5, 109, NA)) %>%                  #Fixing incorrect 7 service, 6thAv-Rockefellr obs 109
+                     mutate(route = apply(select(., c(route1:route11)), 1, collapse.route)) %>%  #Apply collapse, create new string var
+                     select(line, station_name, route, everything(), -c(route1:route11))         #Reorder and remove old route vars
+  #NOTE
 #OBS 109 in original data has an extra train serviced at one of the entrances 
 #(6thAV & 47-50th Sts Rockefeller Center, extra 7 train)
 #OBS 1628 in original data has a miss-coded e instead of E at one entrance 
@@ -68,34 +74,20 @@ nyc.transit.df <- read_csv(file = "./data/NYC_Transit_Subway_Entrance_And_Exit_D
 
 #Dimensions
 dim.nyc.transit <- dim(nyc.transit.df)   #Vector of [1] Rows, [2] Columns
+```
 
-#Count Distinct Stations by Line and Name
+####Data Overview and Cleaning
+After initial data import and cleaning, the resulting `nyc.transit.df` data frame contains `r dim.nyc.transit[1]` observations describing entries and exits for the N.Y.C. subway, in `r dim.nyc.transit[2]` variables. Considering these variables, `line` describes the vertical street station location, `station_name` the horizontal, `station_latitude` and `station_longitude` contain the respective cartographical coordinates of the observation's station, `route` describes a character string of specific trains serviced for each observation's station, `entry` describes a logical whether the observation is an entry or an "exit only", `vending` describes whether or not there are vending services available at each observation, `entrance_type` describes the type of entry/exit for each observation (stair, elevator, etc.), and `ada` describes whether or not the observation is compliant with the Americans with Disabilities Act requirements. Thus far, the cleaning steps have consisted of maintaining uniformity in character data type for `route1:11` when reading in the data, standardizing variable names with the `janitor` package, selecting only the variables of interest described above, transforming the `entry` variable to logical, and fixing incorrect data points. Here, the incorrectly recorded data points consisted of a lower case 'e' for the `route5` variable at Queens & Forest Hills station (observation 1628) and an incorrectly recorded service of the 7 train at 6th Ave./Rockefeller station (observation 109). Overall, we can describe this data as tidy because after collapsing the `route1:11` variables to one character string variable `route`, every row is an observation, every column a distinct variable, and every value has a cell.  
 
-#User Function to collapse route1:11 but omit NA's, returns vector of strings
-collapse.route <- function(x){
-  paste0(na.omit(x), collapse = "/")
-}
-
-#Create Distinct Station tibbl (keeping original for entry/exit question)
-distinct.route.df <- nyc.transit.df %>%
-                     mutate(route = apply(select(., route1:route11), 1, collapse.route)) %>%  #Apply collapse, create new string var
-                     select(line, station_name, route, everything(), -c(route1:route11))      #Tidy up order and remove old routes
-
+```{r}
 #Count Distinct Stations by Line, Name, and Route
-distinct.stations <- distinct.route.df %>% distinct(., line, station_name, route) %>% nrow()
+distinct.stations <- nyc.transit.df %>% distinct(., line, station_name, route) %>% nrow()
 
 #Count distinct stations ADA compiance
-distinct.stations.df <- distinct.route.df %>%
-                     distinct(., line, station_name, route, ada)
-
-distinct.ada.comp <- distinct.route.df %>%
+distinct.ada.comp <- nyc.transit.df %>%
                      distinct(., line, station_name, route, ada) %>%
                      select(ada) %>% 
                      apply(., 2, sum, na.rm = TRUE)
-distinct.ada.prop <- distinct.route.df %>%
-                     distinct(., line, station_name, route, ada) %>%
-                     select(ada) %>% 
-                     apply(., 2, mean, na.rm = TRUE)
 
 #Proportion of entries/exits with no vending that allow entrance
 no.vend.entry <- nyc.transit.df %>%
@@ -104,14 +96,16 @@ no.vend.entry <- nyc.transit.df %>%
                      apply(., 2, mean)
 
 #Pulling those which service the A train and counting how many are ADA compliant
-atrain.ada.comp <- distinct.stations.df %>%
+atrain.ada.comp <- nyc.transit.df %>%
+                     distinct(., line, station_name, route, ada) %>%
                      mutate(service_a = grepl("A", route)) %>%
                      filter(service_a == TRUE) %>%
                      select(ada) %>%
                      apply(., 2, sum)
-
-#Note add cleaning steps from the original data frame in each problem, i.e. pipe the whole thing frome original
 ```
+
+####Solutions
+Using the cleaned `nyc.transit.df` dataframe described above, in combination with the `distinct()` function, we were able to obtain that there exist `r distinct.stations` distinct stations in the N.Y.C. subway system, of which `r distinct.ada.comp` are compliant with the Americans with Disabilities Act requirements. Considering all station's entries and exits, of those that do not offer vending services, `r no.vend.entry` % offer entrance. Finally, of distinct stations that service the A-train, `r atrain.ada.comp` are also compliant with ADA requirements. 
 
 Problem2
 This problem uses the Mr. Trash Wheel dataset, available as an Excel file on the course website. Please use the  HealthyHarborWaterWheelTotals2017-9-26.xlsx version.
