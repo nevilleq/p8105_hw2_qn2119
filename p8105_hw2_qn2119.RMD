@@ -106,20 +106,25 @@ Using the cleaned `nyc.transit.df` dataframe described above, in combination wit
 ```{r warning = FALSE, error = FALSE, message = FALSE}
 ###Mr. Trashwheel###
 #Read and Clean Mr. Trash Wheel Data
-trash.wheel.df <- read_xlsx("./data/HealthyHarborWaterWheelTotals2017-9-26.xlsx",
+trash.wheel.df <- read_xlsx("./data/HealthyHarborWaterWheelTotals2018-7-28.xlsx",
                             sheet = "Mr. Trash Wheel", range = cell_cols("A:N")) %>%  #Select only variable columns
                   janitor::clean_names() %>%                                          #Standardize variable names
                   mutate(total = grepl("Total", month),                               #Create logical for "Total", for later filtering
-                         sports_balls = as.integer(sports_balls),                     #Round sports_balls to nearet integer
-                         year = ifelse(is.na(year), "2017", year)) %>%                #Impute missing year to match date variable
+                         sports_balls = as.integer(sports_balls)) %>%                 #Cast sports balls as integer
                   filter(total == FALSE) %>%                                          #Omit all rows with non-dumpster spec. data
                   select(-total) %>%                                                  #Remove logical total variable
                   na.omit()                                                           #Omit the remaining NA rows
-
-#Key Stats
 #Dimension
 dim.trash.wheel <- dim(trash.wheel.df) #c(Rows, Cols)
 
+#Calculate Median Sports Balls in 2016
+median.sports.balls <- trash.wheel.df %>%
+                       filter(year == "2016") %>%
+                       select(sports_balls) %>%
+                       apply(., 2, median)
+```
+
+```{r echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
 #Create Tibble of Summary stats to access easily inline
 total.trash.df <- trash.wheel.df %>% 
               select(weight_tons:homes_powered) %>%           #Taking all the cont. variables, calculating sum/totals, store as tibble
@@ -134,19 +139,15 @@ summary.trash.df <- trash.wheel.df %>%
               apply(., 2, round, 3) %>% as.tibble()
 
 rownames(summary.trash.df) <- c("Min", "1Q", "Median", "Mean", "3Q", "Max", "Sum") #For easy inline access
+```
 
-#Calculate Median Sports Balls in 2016
-median.sports.balls <- trash.wheel.df %>%
-                       filter(year == "2016") %>%
-                       select(sports_balls) %>%
-                       apply(., 2, median)
-
+```{r}
 ###2016-2017 Precipitation###
 #Read 2016-2017 Precipitation Data
-precip.16.df <- read_xlsx("./data/HealthyHarborWaterWheelTotals2017-9-26.xlsx",
+precip.16.df <- read_xlsx("./data/HealthyHarborWaterWheelTotals2018-7-28.xlsx",
                             sheet = "2016 Precipitation", range = "A2:B14")
 
-precip.17.df <- read_xlsx("./data/HealthyHarborWaterWheelTotals2017-9-26.xlsx",
+precip.17.df <- read_xlsx("./data/HealthyHarborWaterWheelTotals2018-7-28.xlsx",
                             sheet = "2017 Precipitation", range = "A2:B14")
 
 #Clean 2016-2017 Precipitation Data
@@ -161,6 +162,14 @@ precip.16.17.df <- bind_rows(precip.16.df, precip.17.df) %>%                    
 #Key Stats
 dim.precip.16.17 <- dim(precip.16.17.df)
 
+#Total Precipitation in 2017
+total.precip.17 <- precip.16.17.df %>%
+                   filter(year == 2017) %>%
+                   select(total) %>%
+                   sum()
+```
+
+```{r echo = FALSE, message = FALSE, warning = FALSE, error = FALSE}
 #Total for both years
 total.precip.df <- precip.16.17.df %>% 
                    select(total) %>%              #Taking continuous variable Total
@@ -176,18 +185,22 @@ summary.precip.df <- precip.16.17.df %>%
 
 #Name rows by summary stat. for easy access inline 
 rownames(summary.precip.df) <- c("Min", "1Q", "Median", "Mean", "3Q", "Max", "Sum")
-
-#Total Precipitation in 2017
-total.precip.17 <- precip.16.17.df %>%
-                   filter(year == 2017) %>%
-                   select(total) %>%
-                   sum()
 ```
 
 ####Data Overview and Cleaning
-First, considering the data collected from Mr. Trash Wheel during 2014-2017, after cleaning the data, there exist `r dim.trash.wheel[1]` data collection observations in `r dim.trash.wheel[2]` variables. The cleaning process involved standardizing variable names, identifying and filtering observations for "Monthly totals", rounding sports ball values to the nearest integer, and imputing missing years for the last few observations. After the process, the data includes variables for year, month, date, weight, volume, counts of different types of trash, and approximate amount of homes powered by the electricity generated from Mr. Trash Wheel; per each trash collection observation. During the almost three years of obervation, a total of `r summary.trash.df['Sum', 'weight_tons']` tons and `r summary.trash.df['Sum', 'volume_cubic_yards']` cubic yards of trash were collected, with an average of `r summary.trash.df['Mean', 'weight_tons']` tons and `r summary.trash.df['Mean', 'volume_cubic_yards']` cubic yards collected per observation. Additionally, the largest average contributor per collection to Mr. Trash Wheel's consumption over this time frame, other than cigarette butts (`r summary.trash.df['Mean', 'cigarette_butts']`), was polystyrene trash (`r summary.trash.df['Mean', 'polystyrene']`), followed by plastic bottles, chip bags, and grocery bags, (`r summary.trash.df['Mean', 'plastic_bottles']`, `r summary.trash.df['Mean', 'chip_bags']`, `r summary.trash.df['Mean', 'grocery_bags']`), respectively. A complete table of summary statistics for the cleaned Mr. Trash Wheel data can be found in the appendix.
+First, considering the data collected from Mr. Trash Wheel during `r min(trash.wheel.df$year)` - `r max(trash.wheel.df$year)`, after cleaning the data, there exist `r dim.trash.wheel[1]` data collection observations in `r dim.trash.wheel[2]` variables. The cleaning process involved standardizing variable names, identifying and filtering observations for "Monthly totals", rounding sports ball values to the nearest integer, and imputing missing years for the last few observations. After the process, the data includes variables for year, month, date, weight, volume, counts of different types of trash, and approximate amount of homes powered by the electricity generated from Mr. Trash Wheel; per each trash collection observation. During the almost three years of obervation, a total of `r summary.trash.df['Sum', 'weight_tons']` tons and `r summary.trash.df['Sum', 'volume_cubic_yards']` cubic yards of trash were collected, with an average of `r summary.trash.df['Mean', 'weight_tons']` tons and `r summary.trash.df['Mean', 'volume_cubic_yards']` cubic yards collected per observation. Additionally, the largest average contributor per collection to Mr. Trash Wheel's consumption over this time frame, other than cigarette butts (`r summary.trash.df['Mean', 'cigarette_butts']`), was polystyrene trash (`r summary.trash.df['Mean', 'polystyrene']`), followed by plastic bottles, chip bags, and grocery bags, (`r summary.trash.df['Mean', 'plastic_bottles']`, `r summary.trash.df['Mean', 'chip_bags']`, `r summary.trash.df['Mean', 'grocery_bags']`), respectively. A complete table of summary statistics for the cleaned Mr. Trash Wheel data can be found below (code in the Appendix).
 
-Next, considering the Precipitation Data collected during 2016-2017 in the same region as Mr. Trashwheel's garbage routes, there were `r dim.precip.16.17[1]` monthly observations, in `r dim.precip.16.17[2]` variables: total precipitation (in.) by month, month, and year. Cleaning this data involved reading in two data sets, 2016 and 2017 respectively, joining them by row, standardizing variable names, creating variables for month and year of precipitation observation, and removing observations with now recorded precipitation data. With respect to the cleaned data, only the first 8 out of 12 months for 2017 contained data for total precipitation by month, while the total precipitation over the observation period from Jan. 2016 - Aug. 2017 was `r summary.precip.df['Sum',]` in., with an average of `r summary.precip.df['Mean',]` in. and median of `r summary.precip.df['Median',]` in. per month. A complete table of summary statistics for total precipitation over this time frame can be found in the appendix. 
+```{r echo = FALSE}
+summary.trash.df %>%
+  knitr::kable(digits = 3)
+```
+
+Next, considering the Precipitation Data collected during `r min(precip.16.17.df$year)` - `r max(precip.16.17.df$year)` in the same region as Mr. Trashwheel's garbage routes, there were `r dim.precip.16.17[1]` monthly observations, in `r dim.precip.16.17[2]` variables: total precipitation (in.) by month, month, and year. Cleaning this data involved reading in two data sets, 2016 and 2017 respectively, joining them by row, standardizing variable names, creating variables for month and year of precipitation observation, and removing observations with now recorded precipitation data. With respect to the cleaned data, the total precipitation over the observation period from Jan. 2016 - Dec. 2017 was `r summary.precip.df['Sum',]` in., with an average of `r round(summary.precip.df['Mean',],2)` in. and median of `r summary.precip.df['Median',]` in. per month. A complete table of summary statistics for total precipitation, in inches, over this time frame can be found below (code in the Appendix).
+
+```{r echo = FALSE}
+summary.precip.df %>% t() %>%
+knitr::kable(digits = 2)
+```
 
 ####Solutions
 With respect to the two cleaned data frames concerning Mr. Trash Wheel and monthly precipitation, outlined above, we were able to obtain that there was an observed total precipitation of `r total.precip.17` in. in 2017, while the median number of sports balls collected by Mr. Trash Wheel was `r median.sports.balls` in 2016. 
@@ -271,4 +284,40 @@ scatter.excel.02.10 <- brfss.df %>%
                          labels = expression("New York County", "Queens County")
                          )
 scatter.excel.02.10
+```
+
+#Appendix
+```{r eval = FALSE}
+#####Creating summary tibbles for inline access/visualization####
+###Mr. Trash Wheel Summary Statistics Tibble###
+total.trash.df <- trash.wheel.df %>% 
+              select(weight_tons:homes_powered) %>%           #Taking all the cont. variables, calculating sum/totals, store as tibble
+              apply(., 2, sum) %>% 
+              t() %>%
+              as.tibble()
+summary.trash.df <- trash.wheel.df %>% 
+              select(weight_tons:homes_powered) %>%           #Taking all the cont. variables, calc. summary stats, store as tibble
+              apply(., 2, summary) %>%                        #Row bind with total
+              as.tibble() %>%                                 #Add 'statistic' variable to access easiliy by filter inline
+              bind_rows(., total.trash.df) %>%
+              apply(., 2, round, 3) %>% as.tibble()
+
+rownames(summary.trash.df) <- c("Min", "1Q", "Median", "Mean", "3Q", "Max", "Sum") #For easy inline access
+
+###Precipitation Summary Statistics Tibble###
+#Total for both years
+total.precip.df <- precip.16.17.df %>% 
+                   select(total) %>%              #Taking continuous variable Total
+                   apply(., 2, sum) %>%           #Counting the total over both years
+                   t() %>% as.tibble()
+
+#Summary monthly rainfall for both years & total in one tibble
+summary.precip.df <- precip.16.17.df %>%
+                 select(total) %>%                #Taking cont. variable Total
+                 apply(., 2, summary) %>%         #Summarazing it over both years
+                 as.tibble() %>%                  #Binding with total for easy inline access
+                 bind_rows(., total.precip.df) 
+
+#Name rows by summary stat. for easy access inline 
+rownames(summary.precip.df) <- c("Min", "1Q", "Median", "Mean", "3Q", "Max", "Sum")
 ```
