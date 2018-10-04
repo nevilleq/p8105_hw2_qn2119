@@ -34,6 +34,13 @@ options(scipen = 999999)
 ```
 
 #Problem 1
+This problem focuses on NYC Transit Data, describing observations from every entry/exit on the NYC subway, in a variety of variables. After data cleaning, we will answer the following questions using these data:
+
+- How many distinct stations are there? 
+- How many stations are ADA compliant?
+- What proportion of station entrances / exits without vending allow entrance?
+- How many distinct stations serve the A train? 
+- Of the stations that serve the A train, how many are ADA compliant?
 ```{r}
 #User Function to collapse route1:11 but omit NA's, returns vector of strings, for tidy data
 collapse.route <- function(x){
@@ -103,6 +110,11 @@ atrain.ada.comp <- nyc.transit.df %>%
 Using the cleaned `nyc.transit.df` dataframe described above, in combination with the `distinct()` function, we were able to obtain that there exist `r distinct.stations` distinct stations in the N.Y.C. subway system, of which `r distinct.ada.comp` are compliant with the Americans with Disabilities Act requirements. Considering all station's entries and exits, of those that do not offer vending services, only `r 100*round(no.vend.entry,5)`% offer entrance. Finally, of the `r distinct.atrain` distinct stations that service the A-train, `r atrain.ada.comp` are also compliant with ADA requirements. 
 
 #Problem 2
+This problem focuses on the Mr. Trash Wheel and accompanying precipitation data. After cleaning and briefly describing and summarizing these data, we will answer the following questions:
+
+- For available data, what was the total precipitation in 2017? 
+- What was the median number of sports balls in a dumpster in 2016?
+
 ```{r warning = FALSE, error = FALSE, message = FALSE}
 ###Mr. Trashwheel###
 #Read and Clean Mr. Trash Wheel Data
@@ -205,9 +217,14 @@ knitr::kable(digits = 2)
 ####Solutions
 With respect to the two cleaned data frames concerning Mr. Trash Wheel and monthly precipitation, outlined above, we were able to obtain that there was an observed total precipitation of `r total.precip.17` in. in 2017, while the median number of sports balls collected by Mr. Trash Wheel was `r median.sports.balls` in 2016. 
 
-
-
 #Problem 3
+This problem focuses on the BRFSS data set, loaded from the p8105 github repo. After cleaning and briefly summarizing these data, we will answer the following questions:
+
+- How many unique locations are included in the dataset? Is every state represented? What state is observed the most?
+- In 2002, what is the median of the “Excellent” response value?
+- Make a histogram of “Excellent” response values in the year 2002.
+- Make a scatterplot showing the proportion of “Excellent” response values in New York County and Queens County (both in NY State) in each year from 2002 to 2010.
+
 ```{r message = FALSE, warning = FALSE, error = FALSE}
 #Call data from p8105 library
 data("brfss_smart2010")
