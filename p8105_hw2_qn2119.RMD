@@ -1,7 +1,7 @@
 ---
 title: "P8105 Homework 2"
 author: "Quinton Neville"
-date: "Due October 4th, 2018"
+date: "Due October 5th, 2018"
 header-includes: 
   \usepackage{graphicx}
   \usepackage{float}
@@ -145,12 +145,13 @@ total.trash.df <- trash.wheel.df %>%
               as.tibble()
 summary.trash.df <- trash.wheel.df %>% 
               select(weight_tons:homes_powered) %>%           #Taking all the cont. variables, calc. summary stats, store as tibble
-              apply(., 2, summary) %>%                        #Row bind with total
-              as.tibble() %>%                                 #Add 'statistic' variable to access easiliy by filter inline
+              apply(., 2, summary) %>%                        #Apply summary() to each column
+              apply(., 2, round, 2) %>%                       #Round values to two digits for presentation
+              as.tibble() %>%                                 #Transform to tibble
               bind_rows(., total.trash.df) %>%
               apply(., 2, round, 3) %>% as.tibble()
 
-rownames(summary.trash.df) <- c("Min", "1Q", "Median", "Mean", "3Q", "Max", "Sum") #For easy inline access
+rownames(summary.trash.df) <- c("Min", "1Q", "Median", "Mean", "3Q", "Max", "Sum") #For easy inline access, presentation
 ```
 
 ```{r}
@@ -200,14 +201,14 @@ rownames(summary.precip.df) <- c("Min", "1Q", "Median", "Mean", "3Q", "Max", "Su
 ```
 
 ####Data Overview and Cleaning
-First, considering the data collected from Mr. Trash Wheel during `r min(trash.wheel.df$year)` - `r max(trash.wheel.df$year)`, after cleaning the data, there exist `r dim.trash.wheel[1]` data collection observations in `r dim.trash.wheel[2]` variables. The cleaning process involved standardizing variable names, identifying and filtering observations for "Monthly totals", rounding sports ball values to the nearest integer, and imputing missing years for the last few observations. After the process, the data includes variables for year, month, date, weight, volume, counts of different types of trash, and approximate amount of homes powered by the electricity generated from Mr. Trash Wheel; per each trash collection observation. During the almost three years of obervation, a total of `r summary.trash.df['Sum', 'weight_tons']` tons and `r summary.trash.df['Sum', 'volume_cubic_yards']` cubic yards of trash were collected, with an average of `r summary.trash.df['Mean', 'weight_tons']` tons and `r summary.trash.df['Mean', 'volume_cubic_yards']` cubic yards collected per observation. Additionally, the largest average contributor per collection to Mr. Trash Wheel's consumption over this time frame, other than cigarette butts (`r summary.trash.df['Mean', 'cigarette_butts']`), was polystyrene trash (`r summary.trash.df['Mean', 'polystyrene']`), followed by plastic bottles, chip bags, and grocery bags, (`r summary.trash.df['Mean', 'plastic_bottles']`, `r summary.trash.df['Mean', 'chip_bags']`, `r summary.trash.df['Mean', 'grocery_bags']`), respectively. A complete table of summary statistics for the cleaned Mr. Trash Wheel data can be found below (code in the Appendix).
+First, considering the data collected from Mr. Trash Wheel during `r min(trash.wheel.df$year)` - `r max(trash.wheel.df$year)`, after cleaning the data, there exist `r dim.trash.wheel[1]` data collection observations in `r dim.trash.wheel[2]` variables. The cleaning process involved standardizing variable names, identifying and filtering out observations for "Monthly Totals", rounding sports ball values to the nearest integer, and removing excess rows without data values. After the process, the data includes variables for year, month, date, weight, volume, counts of different types of trash, and approximate amount of homes powered by the electricity generated from Mr. Trash Wheel; per each trash collection observation. Throughout the more than three years of observation, a total of `r summary.trash.df['Sum', 'weight_tons']` tons and `r summary.trash.df['Sum', 'volume_cubic_yards']` cubic yards of trash were collected, with an average of `r summary.trash.df['Mean', 'weight_tons']` tons and `r summary.trash.df['Mean', 'volume_cubic_yards']` cubic yards collected per observation. Additionally, the largest average contributor per collection to Mr. Trash Wheel's consumption over this time frame, other than cigarette butts (`r summary.trash.df['Mean', 'cigarette_butts']`), was polystyrene trash (`r summary.trash.df['Mean', 'polystyrene']`), followed by plastic bottles, chip bags, and grocery bags, (`r summary.trash.df['Mean', 'plastic_bottles']`, `r summary.trash.df['Mean', 'chip_bags']`, `r summary.trash.df['Mean', 'grocery_bags']`), respectively. A complete table of summary statistics for the cleaned Mr. Trash Wheel data can be found below (code in the Appendix).
 
 ```{r echo = FALSE}
 summary.trash.df %>%
   knitr::kable(digits = 3)
 ```
 
-Next, considering the Precipitation Data collected during `r min(precip.16.17.df$year)` - `r max(precip.16.17.df$year)` in the same region as Mr. Trashwheel's garbage routes, there were `r dim.precip.16.17[1]` monthly observations, in `r dim.precip.16.17[2]` variables: total precipitation (in.) by month, month, and year. Cleaning this data involved reading in two data sets, 2016 and 2017 respectively, joining them by row, standardizing variable names, creating variables for month and year of precipitation observation, and removing observations with now recorded precipitation data. With respect to the cleaned data, the total precipitation over the observation period from Jan. 2016 - Dec. 2017 was `r summary.precip.df['Sum',]` in., with an average of `r round(summary.precip.df['Mean',],2)` in. and median of `r summary.precip.df['Median',]` in. per month. A complete table of summary statistics for total precipitation, in inches, over this time frame can be found below (code in the Appendix).
+Next, considering the Precipitation Data collected during `r min(precip.16.17.df$year)` - `r max(precip.16.17.df$year)` in the same region as Mr. Trashwheel's garbage routes, there were `r dim.precip.16.17[1]` monthly observations, in `r dim.precip.16.17[2]` variables: total precipitation (in.) by month, month, and year. Cleaning this data involved reading in two data sets, 2016 and 2017 respectively, joining them by row, standardizing variable names, creating variables for month and year of precipitation observation, and removing observations without recorded precipitation data. With respect to the cleaned data, the total precipitation over the observation period from Jan. 2016 - Dec. 2017 was `r summary.precip.df['Sum',]` in., with an average of `r round(summary.precip.df['Mean',],2)` in. and median of `r summary.precip.df['Median',]` in. per month. A complete table of summary statistics for total precipitation, in inches, over this time frame can be found below (code in the Appendix).
 
 ```{r echo = FALSE}
 summary.precip.df %>% t() %>%
@@ -218,7 +219,7 @@ knitr::kable(digits = 2)
 With respect to the two cleaned data frames concerning Mr. Trash Wheel and monthly precipitation, outlined above, we were able to obtain that there was an observed total precipitation of `r total.precip.17` in. in 2017, while the median number of sports balls collected by Mr. Trash Wheel was `r median.sports.balls` in 2016. 
 
 #Problem 3
-This problem focuses on the BRFSS data set, loaded from the p8105 github repo. After cleaning and briefly summarizing these data, we will answer the following questions:
+This problem focuses on the BRFSS data set, loaded from the p8105 github repository. After cleaning and briefly summarizing these data, we will answer the following questions:
 
 - How many unique locations are included in the dataset? Is every state represented? What state is observed the most?
 - In 2002, what is the median of the “Excellent” response value?
@@ -262,10 +263,10 @@ med.excel.2002 <- brfss.df %>%
 ```
 
 ####Data Overview and Cleaning
-After inital data import and cleaning, the resulting `brfss.df` dataframe contains `r dim.brfss[1]` county level observations in `r dim.brfss[2]` variables. These variables include year of observation from `r min(brfss.df$year)`-`r max(brfss.df$year)`, state of observation, and response type from "Excellent" - "Poor" describing the percentage of county respondants who selected this response for their "Overall Health". The initial cleaning steps involved standardizing variable names, subseting by "Overal Health" responses, removing extraneous variables, spreading response type to column variables, standardizing new column names, removing redundant state information and renaming state and county variables, creating a new variable to describe the percentage of county respondants who selected "Excellent" or "very Good", and finally reordering the data for readability. 
+After inital data import and cleaning, the resulting `brfss.df` dataframe contains `r dim.brfss[1]` county level observations in `r dim.brfss[2]` variables. These variables include year of observation from `r min(brfss.df$year)`-`r max(brfss.df$year)`, state of observation, and response type from "Excellent" - "Poor" describing the percentage of county respondants who selected this response for their "Overall Health". The initial cleaning steps involved standardizing variable names, subseting by "Overal Health" responses, removing extraneous variables, spreading response type to column variables, standardizing new column names, removing redundant state information and renaming state and county variables, creating a new variable to describe the percentage of county respondants who selected "Excellent" or "very Good", and finally, reordering the data for readability. 
 
 ####Solutions
-Considering the newly cleaned data frame `brfss.df`, we were able to obtain that of county level respondants to "Overall Health over `r max(brfss.df$year) - min(brfss.df$year)` years of observations, `r distinct.locations` distinct counties by state were observed and all `r distinct.states-1` states were represented, including the District of Columbia. Throughout this time period, the state of `r state.max.obs` contributed the most to these "Overall Health" data, tallying `r brfss.df %>% count(state) %>% select(n) %>% slice(., max.state.index) ` total county level observations. Lastly, the median "Excellent" response percentage by county discovered to be `r med.excel.2002` in the year 2002. A histogram of the percentage of "Excellent" responses in 2002, with the median highlighted in red, is found below. Additionally, a scatter plot depicting the change in percentage excellent responses per year for New York and Queens county is also given below. 
+Considering the newly cleaned data frame `brfss.df`, we were able to obtain that of county level respondants for "Overall Health"" over `r max(brfss.df$year) - min(brfss.df$year)` years of observations, `r distinct.locations` distinct counties by state were observed and all `r distinct.states-1` states were represented, including the District of Columbia. Throughout this time period, the state of `r state.max.obs` contributed the most to these "Overall Health" data, tallying `r brfss.df %>% count(state) %>% select(n) %>% slice(., max.state.index) ` total county level observations. Lastly, the median "Excellent" response percentage by county was discovered to be `r med.excel.2002` in the year 2002. A histogram of the percentage of "Excellent" responses in 2002, with the median highlighted in red, is found below. Additionally, a scatter plot depicting the change in percentage excellent responses per year for New York and Queens county is also given below. 
 
 
 ```{r message = FALSE, warning = FALSE, error = FALSE}
@@ -314,8 +315,9 @@ total.trash.df <- trash.wheel.df %>%
               as.tibble()
 summary.trash.df <- trash.wheel.df %>% 
               select(weight_tons:homes_powered) %>%           #Taking all the cont. variables, calc. summary stats, store as tibble
-              apply(., 2, summary) %>%                        #Row bind with total
-              as.tibble() %>%                                 #Add 'statistic' variable to access easiliy by filter inline
+              apply(., 2, summary) %>%                        #Apply summary() by column
+              apply(., 2, round, 2) %>%                       #Round values to two digits for presentation
+              as.tibble() %>%                                 #Transform from matrix to tibble
               bind_rows(., total.trash.df) %>%
               apply(., 2, round, 3) %>% as.tibble()
 
